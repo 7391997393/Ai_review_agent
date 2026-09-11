@@ -28,3 +28,7 @@ def calculate_total(items):
     for item in items:
         total += item["price"]
     return total
+
+def unsafe_command(user_input):
+    import subprocess
+    subprocess.call(user_input, shell=True)
