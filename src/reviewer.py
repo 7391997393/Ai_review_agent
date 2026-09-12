@@ -1,5 +1,3 @@
-import asyncio
-
 from langchain_openai import ChatOpenAI
 
 from src.config import Settings
@@ -23,44 +21,36 @@ def build_model(settings: Settings) -> ChatOpenAI:
     return ChatOpenAI(**kwargs)
 
 
-async def review_category(
+async def review_all_categories(
     settings: Settings,
-    category: str,
     context: str,
 ) -> list:
     model = build_model(settings)
     structured_model = model.with_structured_output(ReviewResult)
 
-    prompt = build_prompt(category, context)
+    prompts = []
 
-    # Retry temporary Gemini 429/503 errors.
-    max_attempts = 4
+    for category in CATEGORIES:
+        prompts.append(
+            build_prompt(category, context)
+        )
 
-    for attempt in range(max_attempts):
-        try:
-            result = await structured_model.ainvoke(prompt)
-            return result.findings
+    combined_prompt = """
+You are reviewing a GitHub Pull Request.
 
-        except Exception as exc:
-            error_text = str(exc)
+Analyze the code carefully for ALL of the following categories:
 
-            temporary_error = (
-                "429" in error_text
-                or "503" in error_text
-                or "RESOURCE_EXHAUSTED" in error_text
-                or "UNAVAILABLE" in error_text
-                or "high demand" in error_text
-            )
+1. Security
+2. Coding standards
+3. Tests
+4. Performance
 
-            if not temporary_error or attempt == max_attempts - 1:
-                raise
+Return ALL findings together using the required structured output format.
 
-            wait_seconds = 10 * (attempt + 1)
-            print(
-                f"Temporary Gemini error. "
-                f"Retrying in {wait_seconds} seconds..."
-            )
+Here are the review instructions:
 
-            await asyncio.sleep(wait_seconds)
+""" + "\n\n--- NEXT CATEGORY ---\n\n".join(prompts)
 
-    return []
+    result = await structured_model.ainvoke(combined_prompt)
+
+    return result.findings
