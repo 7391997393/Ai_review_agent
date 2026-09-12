@@ -31,31 +31,36 @@ async def review_category(
     model = build_model(settings)
     structured_model = model.with_structured_output(ReviewResult)
 
-    max_retries = 4
+    prompt = build_prompt(category, context)
 
-    for attempt in range(max_retries):
+    # Retry temporary Gemini 429/503 errors.
+    max_attempts = 4
+
+    for attempt in range(max_attempts):
         try:
-            result = await structured_model.ainvoke(
-                build_prompt(category, context)
-            )
+            result = await structured_model.ainvoke(prompt)
             return result.findings
 
-        except Exception as e:
-            error_text = str(e)
+        except Exception as exc:
+            error_text = str(exc)
 
-            # Gemini free-tier rate limit
-            if "429" in error_text or "quota" in error_text.lower():
-                if attempt < max_retries - 1:
-                    wait_time = 10 * (attempt + 1)
+            temporary_error = (
+                "429" in error_text
+                or "503" in error_text
+                or "RESOURCE_EXHAUSTED" in error_text
+                or "UNAVAILABLE" in error_text
+                or "high demand" in error_text
+            )
 
-                    print(
-                        f"Gemini rate limit reached for '{category}'. "
-                        f"Retrying in {wait_time} seconds..."
-                    )
+            if not temporary_error or attempt == max_attempts - 1:
+                raise
 
-                    await asyncio.sleep(wait_time)
-                    continue
+            wait_seconds = 10 * (attempt + 1)
+            print(
+                f"Temporary Gemini error. "
+                f"Retrying in {wait_seconds} seconds..."
+            )
 
-            raise
+            await asyncio.sleep(wait_seconds)
 
     return []
