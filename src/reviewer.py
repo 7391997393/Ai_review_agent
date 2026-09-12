@@ -1,3 +1,5 @@
+import asyncio
+
 from langchain_openai import ChatOpenAI
 
 from src.config import Settings
@@ -29,7 +31,31 @@ async def review_category(
     model = build_model(settings)
     structured_model = model.with_structured_output(ReviewResult)
 
-    result = await structured_model.ainvoke(
-        build_prompt(category, context)
-    )
-    return result.findings
+    max_retries = 4
+
+    for attempt in range(max_retries):
+        try:
+            result = await structured_model.ainvoke(
+                build_prompt(category, context)
+            )
+            return result.findings
+
+        except Exception as e:
+            error_text = str(e)
+
+            # Gemini free-tier rate limit
+            if "429" in error_text or "quota" in error_text.lower():
+                if attempt < max_retries - 1:
+                    wait_time = 10 * (attempt + 1)
+
+                    print(
+                        f"Gemini rate limit reached for '{category}'. "
+                        f"Retrying in {wait_time} seconds..."
+                    )
+
+                    await asyncio.sleep(wait_time)
+                    continue
+
+            raise
+
+    return []
