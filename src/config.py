@@ -16,7 +16,7 @@ class Settings:
     @classmethod
     def from_env(cls) -> "Settings":
         required = {
-            "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY"),
+            "OPENAI_API_KEY": os.getenv("GEMINI_API_KEY"),
             "OPENAI_MODEL": os.getenv("OPENAI_MODEL"),
             "GITHUB_PERSONAL_ACCESS_TOKEN": os.getenv("GITHUB_PERSONAL_ACCESS_TOKEN"),
         }
