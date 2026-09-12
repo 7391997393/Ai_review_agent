@@ -24,10 +24,10 @@ async def review_node(state: ReviewState, settings: Settings):
 def build_graph(settings: Settings):
     builder = StateGraph(ReviewState)
 
-    builder.add_node(
-        "review",
-        lambda state: review_node(state, settings),
-    )
+    async def node(state: ReviewState):
+        return await review_node(state, settings)
+
+    builder.add_node("review", node)
 
     builder.add_edge(START, "review")
     builder.add_edge("review", END)
