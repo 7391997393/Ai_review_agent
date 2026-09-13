@@ -21,15 +21,36 @@ def build_model(settings: Settings) -> ChatOpenAI:
     return ChatOpenAI(**kwargs)
 
 
-async def review_category(
+async def review_all_categories(
     settings: Settings,
-    category: str,
     context: str,
 ) -> list:
     model = build_model(settings)
     structured_model = model.with_structured_output(ReviewResult)
 
-    result = await structured_model.ainvoke(
-        build_prompt(category, context)
-    )
+    prompts = []
+
+    for category in CATEGORIES:
+        prompts.append(
+            build_prompt(category, context)
+        )
+
+    combined_prompt = """
+You are reviewing a GitHub Pull Request.
+
+Analyze the code carefully for ALL of the following categories:
+
+1. Security
+2. Coding standards
+3. Tests
+4. Performance
+
+Return ALL findings together using the required structured output format.
+
+Here are the review instructions:
+
+""" + "\n\n--- NEXT CATEGORY ---\n\n".join(prompts)
+
+    result = await structured_model.ainvoke(combined_prompt)
+
     return result.findings

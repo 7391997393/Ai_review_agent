@@ -16,17 +16,22 @@ class Settings:
     @classmethod
     def from_env(cls) -> "Settings":
         required = {
-            "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY"),
+            "GEMINI_API_KEY": os.getenv("GEMINI_API_KEY")
+            or os.getenv("OPENAI_API_KEY"),
             "OPENAI_MODEL": os.getenv("OPENAI_MODEL"),
-            "GITHUB_PERSONAL_ACCESS_TOKEN": os.getenv("GITHUB_PERSONAL_ACCESS_TOKEN"),
+            "GITHUB_PERSONAL_ACCESS_TOKEN": os.getenv(
+                "GITHUB_PERSONAL_ACCESS_TOKEN"
+            ),
         }
 
         missing = [name for name, value in required.items() if not value]
         if missing:
-            raise RuntimeError(f"Missing environment variables: {', '.join(missing)}")
+            raise RuntimeError(
+                f"Missing environment variables: {', '.join(missing)}"
+            )
 
         return cls(
-            openai_api_key=required["OPENAI_API_KEY"],
+            openai_api_key=required["GEMINI_API_KEY"],
             openai_model=required["OPENAI_MODEL"],
             openai_base_url=os.getenv("OPENAI_BASE_URL"),
             github_token=required["GITHUB_PERSONAL_ACCESS_TOKEN"],
