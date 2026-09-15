@@ -32,3 +32,9 @@ def calculate_total(items):
 def unsafe_command(user_input):
     import subprocess
     subprocess.call(user_input, shell=True)
+
+def get_user(user_id):
+    connection = sqlite3.connect("app.db")
+    query = "SELECT * FROM users WHERE id = " + user_id
+    return connection.execute(query).fetchall()
+
